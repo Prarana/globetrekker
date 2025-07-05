@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Auth from './pages/Auth';          // Combined Login + Signup
-import Home from './pages/Home';          // Combined Home + SearchForm
+import Auth from './pages/Auth';          
+import Home from './pages/Home';          
 import { useAuth } from './context/AuthContext';
 import './App.css';
-import Trips from './pages/Trips';        // Combined TripDetails + MyTrips
+import Trips from './pages/Trips';        
 
 function App() {
   const { user, loading } = useAuth();

@@ -2,16 +2,20 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 import { db, storage } from "../services/firebase";
+import Header from "../components/Header";
+import Loading from "../components/Loading";
 
 const Trips = () => {
   const { user } = useAuth();
   const [itineraries, setItineraries] = useState([]);
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [loadingTrips, setLoadingTrips] = useState(false);
 
   useEffect(() => {
     const fetchItineraries = async () => {
       if (!user) return;
       try {
+        setLoadingTrips(true);
         const q = query(
           collection(db, "itineraries"),
           where("uid", "==", user.uid)
@@ -32,6 +36,8 @@ const Trips = () => {
         if (fetched.length > 0) setSelectedTrip(fetched[0]);
       } catch (error) {
         console.error("Error fetching itineraries:", error);
+      } finally {
+        setLoadingTrips(false);
       }
     };
 
@@ -39,96 +45,97 @@ const Trips = () => {
   }, [user]);
 
   return (
-    <div style={styles.wrapper}>
-      {/* Left side */}
-      <div style={styles.leftPanel}>
-        <h2 style={styles.heading}>My Trips</h2>
-        {itineraries.map((trip, index) => (
-          <div
-            key={trip.id}
-            onClick={() => setSelectedTrip(trip)}
-            style={{
-              ...styles.tripItem,
-              backgroundColor:
-                selectedTrip?.id === trip.id ? "#ffeaf4" : "#fff",
-              display: "flex",
-              flexDirection: "column",
-              cursor: "pointer",
-            }}
-          >
-            {trip.coverImage && trip.coverImage.startsWith("data:image") ? (
+    <div>
+      {loadingTrips && <Loading />}
+      <Header />
+      <div style={styles.wrapper}>
+        {/* Left side */}
+        <div style={styles.leftPanel}>
+          <h2 style={styles.heading}>My Trips</h2>
+          {itineraries.map((trip, index) => (
+            <div
+              key={trip.id}
+              onClick={() => setSelectedTrip(trip)}
+              style={{
+                ...styles.tripItem,
+                backgroundColor:
+                  selectedTrip?.id === trip.id ? "#ffeaf4" : "#fff",
+                display: "flex",
+                flexDirection: "column",
+                cursor: "pointer",
+              }}
+            >
+              {trip.coverImage && trip.coverImage.startsWith("data:image") ? (
                 <img
                   src={trip.coverImage}
                   alt={`${trip.tripName || `Trip #${index + 1}`} cover`}
                   style={styles.coverImage}
                 />
+              ) : (
+                <div style={styles.noCoverImage}>No Cover Image</div>
+              )}
 
-            ) 
-            
-            : (
-              <div style={styles.noCoverImage}>No Cover Image</div>
-            )}
-
-            <div style={styles.tripName}>
-              {trip.name || trip.tripName || `Trip #${index + 1}`}
-            </div>
-
-            <div style={styles.dateText}>
-              {trip.createdAt?.toDate().toLocaleDateString()}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Right side */}
-      <div style={styles.rightPanel}>
-        {selectedTrip ? (
-          selectedTrip.flights.map((flight, index) => {
-            const offer = flight.itineraries[0];
-            const segments = offer.segments;
-            const dep = segments[0].departure;
-            const arr = segments[segments.length - 1].arrival;
-            const duration = offer.duration.replace("PT", "").toLowerCase();
-            const stops = segments.length - 1;
-            const stopCity =
-              stops > 0 ? segments[0].arrival.iataCode : "Non-stop";
-
-            return (
-              <div key={index} style={styles.flightCardModern}>
-                <div style={styles.flightDetails}>
-                  <div style={styles.timeSection}>
-                    <div style={styles.timeText}>{dep.at.slice(11, 16)}</div>
-                    <div style={styles.codeText}>{dep.iataCode}</div>
-                  </div>
-
-                  <div style={styles.pathSection}>
-                    <div style={styles.durationText}>{duration}</div>
-                    <div style={styles.flightPath}>
-                      <div style={styles.arrow}>✈︎</div>
-                      <div style={styles.line}></div>
-                      <div style={styles.dot}></div>
-                    </div>
-                    <div style={styles.stopText}>
-                      {stops > 0 ? `${stops} stop` : "Non-stop"}{" "}
-                      {stops > 0 && <span>{stopCity}</span>}
-                    </div>
-                  </div>
-
-                  <div style={styles.timeSection}>
-                    <div style={styles.timeText}>{arr.at.slice(11, 16)}</div>
-                    <div style={styles.codeText}>{arr.iataCode}</div>
-                  </div>
-                </div>
-
-                <div style={styles.priceSection}>
-                  <div style={styles.priceText}>${flight.price.total}</div>
-                </div>
+              <div style={styles.tripName}>
+                {trip.name || trip.tripName || `Trip #${index + 1}`}
               </div>
-            );
-          })
-        ) : (
-          <p style={styles.infoText}>Select a trip to see details.</p>
-        )}
+
+              <div style={styles.dateText}>
+                {trip.createdAt?.toDate().toLocaleDateString()}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Right side */}
+        <div style={styles.rightPanel}>
+          {selectedTrip ? (
+            selectedTrip.flights.map((flight, index) => {
+              const offer = flight.itineraries[0];
+              const segments = offer.segments;
+              const dep = segments[0].departure;
+              const arr = segments[segments.length - 1].arrival;
+              const duration = offer.duration.replace("PT", "").toLowerCase();
+              const stops = segments.length - 1;
+              const stopCity =
+                stops > 0 ? segments[0].arrival.iataCode : "Non-stop";
+
+              return (
+                <div key={index} style={styles.flightCardModern}>
+                  <div style={styles.flightDetails}>
+                    <div style={styles.timeSection}>
+                      <div style={styles.timeText}>{dep.at.slice(11, 16)}</div>
+                      <div style={styles.codeText}>{dep.iataCode}</div>
+                    </div>
+
+                    <div style={styles.pathSection}>
+                      <div style={styles.durationText}>{duration}</div>
+                      <div style={styles.flightPath}>
+                        <div style={styles.arrow}>✈︎</div>
+                        <div style={styles.line}></div>
+                        <div style={styles.dot}></div>
+                      </div>
+                      <div style={styles.stopText}>
+                        {stops > 0 ? `${stops} stop` : "Non-stop"}{" "}
+                        {stops > 0 && <span>{stopCity}</span>}
+                      </div>
+                    </div>
+
+                    <div style={styles.timeSection}>
+                      <div style={styles.timeText}>{arr.at.slice(11, 16)}</div>
+                      <div style={styles.codeText}>{arr.iataCode}</div>
+                    </div>
+                  </div>
+
+                  <div style={styles.priceSection}>
+                    <div style={styles.priceText}>${flight.price.total}</div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p style={styles.infoText}>Select a trip to see details.</p>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -137,7 +144,7 @@ const Trips = () => {
 const styles = {
   wrapper: {
     display: "flex",
-    height: "100vh",
+    height: "93vh",
     width: "100%",
     gap: "1.5rem",
     padding: "1.5rem",
@@ -314,4 +321,3 @@ const styles = {
 };
 
 export default Trips;
-

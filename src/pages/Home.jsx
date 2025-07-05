@@ -6,6 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../services/firebase";
+import Header from "../components/Header";
+import Loading from "../components/Loading";
 
 const Home = () => {
   const [from, setFrom] = useState("");
@@ -22,18 +24,9 @@ const Home = () => {
   const [tripName, setTripName] = useState("");
   const [showSavedMessage, setShowSavedMessage] = useState(false);
   const [coverImageBase64, setCoverImageBase64] = useState("");
-
+  const [loadingFlights, setLoadingFlights] = useState(false);
 
   const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate("/");
-    } catch (err) {
-      console.error("Logout failed:", err.message);
-    }
-  };
 
   const fetchFlightOffers = async () => {
     setLoading(true);
@@ -67,14 +60,14 @@ const Home = () => {
     }
   };
 
-    const fileToBase64 = (file) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = (error) => reject(error);
-      });
-    };
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -82,17 +75,19 @@ const Home = () => {
       setError("All fields are required.");
       return;
     }
-    fetchFlightOffers();
+    try {
+      setLoadingFlights(true);
+      fetchFlightOffers();
+    } catch (error) {
+      console.error("Flight search error", error);
+    } finally {
+      setLoadingFlights(false);
+    }
   };
 
   const handleAddToTrip = (flight) => {
     setItinerary((prev) => [...prev, flight]);
   };
-
-  const navigateToTrips = () => {
-    navigate("/trips");
-  };
-
 
   const handleSaveItinerary = () => {
     if (!user) {
@@ -101,7 +96,7 @@ const Home = () => {
     }
     if (!itinerary.length) return;
 
-    setShowPopup(true); 
+    setShowPopup(true);
   };
 
   const finalizeSaveTrip = async () => {
@@ -127,239 +122,275 @@ const Home = () => {
   };
 
   return (
-    <div style={styles.wrapper}>
-      {showPopup && (
-        <div style={popupStyles.overlay}>
-          <div style={popupStyles.popup}>
-            <h2 style={popupStyles.title}>Name Your Trip</h2>
+    <div>
+      {loadingFlights && <Loading />}
+      <Header />
+      <div style={styles.wrapper}>
+        {showPopup && (
+          <div style={popupStyles.overlay}>
+            <div style={popupStyles.popup}>
+              <h2 style={popupStyles.title}>Name Your Trip</h2>
 
-            <input
-              type="text"
-              placeholder="e.g. Paris Honeymoon"
-              value={tripName}
-              onChange={(e) => setTripName(e.target.value)}
-              style={popupStyles.input}
-            />
+              <input
+                type="text"
+                placeholder="e.g. Paris Honeymoon"
+                value={tripName}
+                onChange={(e) => setTripName(e.target.value)}
+                style={popupStyles.input}
+              />
 
-            <input
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                  const base64 = await fileToBase64(file);
-                  setCoverImageBase64(base64);
-                }
-              }}
-            />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const base64 = await fileToBase64(file);
+                    setCoverImageBase64(base64);
+                  }
+                }}
+              />
 
-            {coverImageBase64 && (
-              <div style={popupStyles.imagePreviewBox}>
-                <img
-                  src={coverImageBase64}
-                  alt="Preview"
-                  style={popupStyles.imagePreview}
-                />
-                <button
-                  onClick={() => setCoverImageBase64("")}
-                  style={popupStyles.deleteBtn}
-                >
-                  Remove Image
-                </button>
-              </div>
-            )}
-
-            <button onClick={finalizeSaveTrip} style={popupStyles.saveBtn}>
-              Save
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showSavedMessage && (
-        <div style={styles.savedMessage}>
-          Trip details saved. Please check trip details from My Trips.
-        </div>
-      )}
-
-      {/* Search Panel */}
-      <form onSubmit={handleSubmit} style={styles.searchBox}>
-        {/* Origin & Destination */}
-        <div style={styles.sectionBox}>
-          <div>
-            <label style={styles.label}>ORIGIN</label>
-            <input
-              type="text"
-              value={from}
-              onChange={(e) => setFrom(e.target.value.toUpperCase())}
-              placeholder="e.g. HYD"
-              style={styles.input}
-              maxLength={3}
-            />
-          </div>
-
-          <div
-            style={styles.swapButton}
-            onClick={() => {
-              const temp = from;
-              setFrom(to);
-              setTo(temp);
-            }}
-          >
-            ⇅
-          </div>
-
-          <div>
-            <label style={styles.label}>DESTINATION</label>
-            <input
-              type="text"
-              value={to}
-              onChange={(e) => setTo(e.target.value.toUpperCase())}
-              placeholder="e.g. AUH"
-              style={styles.input}
-              maxLength={3}
-            />
-          </div>
-        </div>
-
-        {/* Departure Date */}
-        <div style={styles.sectionBox}>
-          <label style={styles.label}>DEPARTURE</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            style={styles.input}
-          />
-        </div>
-
-        {/* Passengers */}
-        <div style={styles.sectionBox}>
-          <label style={styles.label}>PASSENGERS</label>
-          <input
-            type="number"
-            value={passengers}
-            onChange={(e) =>
-              setPassengers(Math.max(1, parseInt(e.target.value || 1)))
-            }
-            min={1}
-            style={styles.input}
-          />
-        </div>
-
-        {/* Search Button */}
-        <button type="submit" style={styles.button}>
-          SEARCH
-        </button>
-
-        {error && <p style={styles.error}>{error}</p>}
-        <button
-          type="button"
-          onClick={handleLogout}
-          style={styles.logoutButton}
-        >
-          Logout
-        </button>
-      </form>
-
-      {/* Results Panel */}
-      <div style={styles.middle}>
-        <h3 style={styles.panelHeading}>Flights</h3>
-        {loading ? (
-          <p style={styles.infoText}>Loading flights...</p>
-        ) : results.length === 0 ? (
-          <p style={styles.infoText}>No flight results.</p>
-        ) : (
-          results.map((flight, index) => {
-            const offer = flight.itineraries[0];
-            const segments = offer.segments;
-            const dep = segments[0].departure;
-            const arr = segments[segments.length - 1].arrival;
-            const duration = offer.duration.replace("PT", "").toLowerCase();
-            const stops = segments.length - 1;
-            const stopCity =
-              stops > 0 ? segments[0].arrival.iataCode : "Non-stop";
-
-            return (
-              <div key={index} style={styles.flightCardModern}>
-                <div style={styles.flightDetails}>
-                  <div style={styles.timeSection}>
-                    <div style={styles.timeText}>
-                      {dep.at.slice(11, 16)} 
-                    </div>
-                    <div style={styles.codeText}>{dep.iataCode}</div>
-                  </div>
-
-                  <div style={styles.pathSection}>
-                    <div style={styles.durationText}>{duration}</div>
-                    <div style={styles.flightPath}>
-                      <div style={styles.arrow}> ✈︎ </div> 
-                      <div style={styles.line}></div>
-                      <div style={styles.dot}></div>
-                    </div>
-                    <div style={styles.stopText}>
-                      {stops > 0 ? `${stops} stop` : "Non-stop"}{" "}
-                      {stops > 0 && <span>{stopCity}</span>}
-                    </div>
-                  </div>
-
-                  <div style={styles.timeSection}>
-                    <div style={styles.timeText}>
-                      {arr.at.slice(11, 16)}
-                      {arr.at.includes("+") && (
-                        <sup style={{ marginLeft: 2, fontSize: "10px" }}>
-                          +{arr.at.split("+")[1]}
-                        </sup>
-                      )}
-                    </div>
-                    <div style={styles.codeText}>{arr.iataCode}</div>
-                  </div>
-                </div>
-
-                <div style={styles.priceSection}>
-                  <div style={styles.priceText}>${flight.price.total}</div>
+              {coverImageBase64 && (
+                <div style={popupStyles.imagePreviewBox}>
+                  <img
+                    src={coverImageBase64}
+                    alt="Preview"
+                    style={popupStyles.imagePreview}
+                  />
                   <button
-                    onClick={() => handleAddToTrip(flight)}
-                    style={styles.selectButton}
+                    onClick={() => setCoverImageBase64("")}
+                    style={popupStyles.deleteBtn}
                   >
-                    Select →
+                    Remove Image
                   </button>
                 </div>
-              </div>
-            );
-          })
-        )}
-      </div>
+              )}
 
-      {/* Itinerary Panel */}
-      <div style={styles.right}>
-        <h3 style={styles.panelHeading}>Itinerary</h3>
-        {itinerary.length === 0 ? (
-          <p style={styles.infoText}>No flights added yet.</p>
-        ) : (
-          <ul style={styles.itineraryList}>
-            {itinerary.map((flight, i) => {
-              const segments = flight.itineraries[0].segments;
-              return (
-                <li key={i} style={styles.card}>
-                  ✈️ {segments[0].departure.iataCode} →{" "}
-                  {segments[segments.length - 1].arrival.iataCode}
-                  <br />
-                  💰 ${flight.price.total}
-                </li>
-              );
-            })}
-          </ul>
+              <button onClick={finalizeSaveTrip} style={popupStyles.saveBtn}>
+                Save
+              </button>
+            </div>
+          </div>
         )}
-        {itinerary.length > 0 && (
-          <button onClick={handleSaveItinerary} style={styles.button}>
-            Save Itinerary
+        {showSavedMessage && (
+          <div style={styles.savedMessage}>
+            Trip details saved. Please check trip details from My Trips.
+          </div>
+        )}
+        {/* Search Panel */}
+        <form onSubmit={handleSubmit} style={styles.searchBox}>
+          {/* Origin & Destination */}
+          <div style={styles.sectionBox}>
+            <div>
+              <label style={styles.label}>ORIGIN</label>
+              <input
+                type="text"
+                value={from}
+                onChange={(e) => setFrom(e.target.value.toUpperCase())}
+                placeholder="e.g. HYD"
+                style={styles.input}
+                maxLength={3}
+              />
+            </div>
+
+            <div
+              style={styles.swapButton}
+              onClick={() => {
+                const temp = from;
+                setFrom(to);
+                setTo(temp);
+              }}
+            >
+              ⇅
+            </div>
+
+            <div>
+              <label style={styles.label}>DESTINATION</label>
+              <input
+                type="text"
+                value={to}
+                onChange={(e) => setTo(e.target.value.toUpperCase())}
+                placeholder="e.g. AUH"
+                style={styles.input}
+                maxLength={3}
+              />
+            </div>
+          </div>
+
+          {/* Departure Date */}
+          <div style={styles.sectionBox}>
+            <label style={styles.label}>DEPARTURE</label>
+            <input
+              type="date"
+              min={new Date().toISOString().split("T")[0]}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              style={styles.input}
+            />
+          </div>
+
+          {/* Passengers */}
+          <div style={styles.sectionBox}>
+            <label style={styles.label}>PASSENGERS</label>
+            <input
+              type="number"
+              value={passengers}
+              onChange={(e) =>
+                setPassengers(Math.max(1, parseInt(e.target.value || 1)))
+              }
+              min={1}
+              style={styles.input}
+            />
+          </div>
+
+          {/* Search Button */}
+          <button type="submit" style={styles.button}>
+            SEARCH
           </button>
-        )}
-        <div></div>
-        <button onClick={navigateToTrips} style={styles.button}>
-          Show Trips
-        </button>
+
+          {error && <p style={styles.error}>{error}</p>}
+        </form>
+
+        {/* Results Panel */}
+        <div style={styles.middle}>
+          <h1 style={styles.panelHeading}>Flights</h1>
+          {loading ? (
+            <p style={styles.infoText}>Loading flights...</p>
+          ) : results.length === 0 ? (
+            <p style={styles.infoText}>No flight results.</p>
+          ) : (
+            results.map((flight, index) => {
+              const offer = flight.itineraries[0];
+              const segments = offer.segments;
+              const dep = segments[0].departure;
+              const arr = segments[segments.length - 1].arrival;
+              const duration = offer.duration.replace("PT", "").toLowerCase();
+              const stops = segments.length - 1;
+              const stopCity =
+                stops > 0 ? segments[0].arrival.iataCode : "Non-stop";
+
+              const traveler = flight.travelerPricings[0];
+              const fareDetail = traveler.fareDetailsBySegment[0];
+
+              return (
+                <div key={index} style={styles.flightCard}>
+                  <div style={styles.flightCardModern}>
+                    <div style={styles.flightDetails}>
+                      <div style={styles.timeSection}>
+                        <div style={styles.timeText}>
+                          {dep.at.slice(11, 16)}
+                        </div>
+                        <div style={styles.codeText}>{dep.iataCode}</div>
+                      </div>
+
+                      <div style={styles.pathSection}>
+                        <div style={styles.durationText}>{duration}</div>
+                        <div style={styles.flightPath}>
+                          <div style={styles.arrow}> ✈︎ </div>
+                          <div style={styles.line}></div>
+                          <div style={styles.dot}></div>
+                        </div>
+                        <div style={styles.stopText}>
+                          {stops > 0 ? `${stops} stop` : "Non-stop"}{" "}
+                          {stops > 0 && <span>{stopCity}</span>}
+                        </div>
+                      </div>
+
+                      <div style={styles.timeSection}>
+                        <div style={styles.timeText}>
+                          {arr.at.slice(11, 16)}
+                        </div>
+                        <div style={styles.codeText}>{arr.iataCode}</div>
+                      </div>
+                    </div>
+
+                    <div style={styles.priceSection}>
+                      <div style={styles.priceText}>${flight.price.total}</div>
+                      <button
+                        onClick={() => handleAddToTrip(flight)}
+                        style={styles.selectButton}
+                      >
+                        Select
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                  <div style={styles.extraDetailsText}>
+                    <label style={styles.extraDetailsText}>
+                      Cabin  :  {"         " + fareDetail.cabin}
+                    </label>
+                    </div>
+                    <div style={styles.extraDetailsBags}>
+                      {fareDetail.includedCheckedBags && (
+                        <label style={styles.extraDetailsText}>
+                          Checked Bags : {fareDetail.includedCheckedBags.weight ? fareDetail.includedCheckedBags.weight : "0"}{" "}
+                          {fareDetail.includedCheckedBags.weightUnit ? fareDetail.includedCheckedBags.weightUnit : "KG"}
+                        </label>
+                      )}
+                      
+                      {fareDetail.includedCabinBags && (
+                        <label style={styles.extraDetailsText}>
+                          Cabin Bags : {fareDetail.includedCabinBags.weight ? fareDetail.includedCabinBags.weight : "0"}{" "}  
+                          {fareDetail.includedCabinBags.weightUnit ? fareDetail.includedCabinBags.weightUnit : "KG"} 
+                        </label>
+                      )}
+                    </div>
+                    {fareDetail.amenities &&
+                      fareDetail.amenities.length > 0 && (
+                        <div>
+                          <label style={styles.extraDetailsText}>
+                            Amenities :{" "}
+                          </label>
+                          <ul
+                            style={{
+                              paddingInline: "10px",
+                              marginTop: "7px",
+                              fontSize: "12px",
+                              marginBottom: "1px",
+                              color: "#333",
+                            }}
+                          >
+                            {fareDetail.amenities.map((item, i) => (
+                              <li key={i} style={{ marginBottom: "5px" }}>{item.description}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Itinerary Panel */}
+        <div style={styles.right}>
+          <h1 style={styles.panelHeading}>Itinerary</h1>
+          {itinerary.length === 0 ? (
+            <p style={styles.infoText}>No flights added yet.</p>
+          ) : (
+            <ul style={styles.itineraryList}>
+              {itinerary.map((flight, i) => {
+                const segments = flight.itineraries[0].segments;
+                return (
+                  <li key={i} style={styles.card}>
+                    ✈️ {segments[0].departure.iataCode} →{" "}
+                    {segments[segments.length - 1].arrival.iataCode}
+                    <br />
+                    💰 ${flight.price.total}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {itinerary.length > 0 && (
+            <button onClick={handleSaveItinerary} style={styles.button}>
+              Save Itinerary
+            </button>
+          )}
+          <div></div>
+        </div>
       </div>
     </div>
   );
@@ -368,7 +399,7 @@ const Home = () => {
 const styles = {
   wrapper: {
     display: "flex",
-    height: "100%",
+    height: "93vh",
     width: "100%",
     padding: "1.5rem",
     gap: "1.5rem",
@@ -444,7 +475,7 @@ const styles = {
   button: {
     marginTop: "1rem",
     padding: "0.85rem",
-    backgroundColor: "#d0006f", // magenta
+    backgroundColor: "#d0006f",
     color: "#fff",
     border: "none",
     borderRadius: "8px",
@@ -456,17 +487,6 @@ const styles = {
 
   buttonHover: {
     backgroundColor: "#b6005a",
-  },
-
-  logoutButton: {
-    marginTop: "1.5rem",
-    padding: "0.85rem",
-    backgroundColor: "#d0006f", 
-    border: "none",
-    color: "#fff",
-    fontWeight: "700",
-    borderRadius: "8px",
-    cursor: "pointer",
   },
 
   middle: {
@@ -527,18 +547,27 @@ const styles = {
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#fff",
+    padding: "1rem 1rem",
+    marginBottom: "1rem",
+    fontSize: "14px",
+  },
+
+  flightCard: {
+    backgroundColor: "#fff",
     borderRadius: "16px",
     padding: "1rem 1.5rem",
     marginBottom: "1rem",
     boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
     fontSize: "14px",
+    textAlign: "left",
   },
 
   flightDetails: {
     display: "flex",
     alignItems: "center",
     flex: 1,
-    gap: "2rem",
+    gap: "1rem",
+    left: "-1%",
   },
 
   timeSection: {
@@ -569,6 +598,20 @@ const styles = {
     fontSize: "12px",
     marginBottom: "4px",
     color: "#333",
+  },
+
+  extraDetailsText: {
+    fontSize: "13px",
+    marginBottom: "8px",
+    color: "#333",
+  },
+
+  extraDetailsBags: {
+    fontSize: "13px",
+    color: "#333",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    display: "flex",
   },
 
   flightPath: {
@@ -605,13 +648,14 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-end",
-    gap: "6px",
+    gap: "10px",
   },
 
   priceText: {
     fontSize: "18px",
     fontWeight: "700",
     color: "#000",
+    gap: "10px",
   },
 
   selectButton: {
@@ -784,7 +828,113 @@ const popupStyles = {
     fontSize: "15px",
     cursor: "pointer",
   },
+
+  middle: {
+    flex: "2",
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    padding: "1.5rem",
+    borderRadius: "10px",
+    overflowY: "auto",
+    fontSize: "14px",
+  },
+  panelHeading: {
+    marginBottom: "1rem",
+    fontWeight: "700",
+    fontSize: "18px",
+    color: "#333",
+  },
+  infoText: {
+    fontStyle: "italic",
+    color: "#666",
+  },
+  flightCardModern: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
+    backgroundColor: "#fff",
+    borderRadius: "16px",
+    padding: "1rem 1.5rem",
+    marginBottom: "1.5rem",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+    fontSize: "14px",
+  },
+  flightDetails: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "2rem",
+  },
+  timeSection: {
+    textAlign: "center",
+    minWidth: "60px",
+  },
+  timeText: {
+    fontSize: "16px",
+    fontWeight: "700",
+    color: "#333",
+  },
+  codeText: {
+    color: "#666",
+    marginTop: "4px",
+    fontSize: "13px",
+  },
+  pathSection: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    minWidth: "100px",
+  },
+  durationText: {
+    fontSize: "12px",
+    marginBottom: "4px",
+    color: "#333",
+  },
+  flightPath: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  },
+  dot: {
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    backgroundColor: "#d0006f",
+  },
+  line: {
+    width: "40px",
+    height: "2px",
+    backgroundColor: "#999",
+  },
+  arrow: {
+    fontSize: "25px",
+  },
+  stopText: {
+    fontSize: "12px",
+    marginTop: "4px",
+    color: "#d0006f",
+    fontWeight: "600",
+  },
+  priceSection: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  priceText: {
+    fontSize: "18px",
+    fontWeight: "700",
+    color: "#000",
+  },
+  selectButton: {
+    marginTop: "4px",
+    padding: "8px 16px",
+    backgroundColor: "#d0006f",
+    color: "#fff",
+    fontWeight: "600",
+    border: "none",
+    borderRadius: "10px",
+    fontSize: "14px",
+    cursor: "pointer",
+  },
 };
 
 export default Home;
-
