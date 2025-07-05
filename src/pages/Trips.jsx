@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { db, storage } from "../services/firebase";
 import Header from "../components/Header";
 import Loading from "../components/Loading";
+import Footer from "../components/Footer";
 
 const Trips = () => {
   const { user } = useAuth();
@@ -137,6 +138,7 @@ const Trips = () => {
           )}
         </div>
       </div>
+      <Footer/>
     </div>
   );
 };
@@ -144,7 +146,7 @@ const Trips = () => {
 const styles = {
   wrapper: {
     display: "flex",
-    height: "93vh",
+    height: "89vh",
     width: "100%",
     gap: "1.5rem",
     padding: "1.5rem",

@@ -8,11 +8,12 @@ import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../services/firebase";
 import Header from "../components/Header";
 import Loading from "../components/Loading";
+import Footer from "../components/Footer";
 
 const Home = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [budget, setBudget] = useState(500);
+  const [budget, setBudget] = useState(1000);
   const [date, setDate] = useState("");
   const [results, setResults] = useState([]);
   const [itinerary, setItinerary] = useState([]);
@@ -36,16 +37,26 @@ const Home = () => {
       const response = await axios.get(
         "https://test.api.amadeus.com/v2/shopping/flight-offers",
         {
-          params: {
-            originLocationCode: from.toUpperCase(),
-            destinationLocationCode: to.toUpperCase(),
-            departureDate: date,
-            adults: passengers,
-            nonStop: false,
-            max: 200,
-            currencyCode: "USD",
-            maxPrice: budget,
-          },
+            params: {
+              originLocationCode: from.toUpperCase(),
+              destinationLocationCode: to.toUpperCase(),
+              departureDate: date,
+              adults: passengers,
+              nonStop: false,
+              max: 200,
+              currencyCode: "USD",
+              maxPrice: budget,
+            },
+        //   params: {
+        //     originLocationCode: "HYD",
+        //     destinationLocationCode: "AUH",
+        //     departureDate: "2025-07-11",
+        //     adults: "1",
+        //     nonStop: false,
+        //     max: 200,
+        //     currencyCode: "USD",
+        //     maxPrice: budget,
+        //   },
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
@@ -69,15 +80,15 @@ const Home = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!from || !to || !date) {
-      setError("All fields are required.");
-      return;
-    }
+    // if (!from || !to || !date) {
+    //   setError("All fields are required.");
+    //   return;
+    // }
     try {
       setLoadingFlights(true);
-      fetchFlightOffers();
+      await fetchFlightOffers();
     } catch (error) {
       console.error("Flight search error", error);
     } finally {
@@ -120,6 +131,10 @@ const Home = () => {
       console.error("Save error:", error);
     }
   };
+  const handleRemoveFromTrip = (indexToRemove) => {
+    setItinerary((prev) => prev.filter((_, index) => index !== indexToRemove));
+  };
+  
 
   return (
     <div>
@@ -129,11 +144,11 @@ const Home = () => {
         {showPopup && (
           <div style={popupStyles.overlay}>
             <div style={popupStyles.popup}>
-              <h2 style={popupStyles.title}>Name Your Trip</h2>
+              <h2 style={popupStyles.title}>Enter trip details</h2>
 
               <input
                 type="text"
-                placeholder="e.g. Paris Honeymoon"
+                placeholder="Enter trip name"
                 value={tripName}
                 onChange={(e) => setTripName(e.target.value)}
                 style={popupStyles.input}
@@ -167,7 +182,7 @@ const Home = () => {
                 </div>
               )}
 
-              <button onClick={finalizeSaveTrip} style={popupStyles.saveBtn}>
+              <button onClick={finalizeSaveTrip} style={styles.button}>
                 Save
               </button>
             </div>
@@ -188,7 +203,7 @@ const Home = () => {
                 type="text"
                 value={from}
                 onChange={(e) => setFrom(e.target.value.toUpperCase())}
-                placeholder="e.g. HYD"
+                placeholder="From"
                 style={styles.input}
                 maxLength={3}
               />
@@ -211,7 +226,7 @@ const Home = () => {
                 type="text"
                 value={to}
                 onChange={(e) => setTo(e.target.value.toUpperCase())}
-                placeholder="e.g. AUH"
+                placeholder="To"
                 style={styles.input}
                 maxLength={3}
               />
@@ -240,7 +255,7 @@ const Home = () => {
                 setPassengers(Math.max(1, parseInt(e.target.value || 1)))
               }
               min={1}
-              style={styles.input}
+              style={styles.input} 
             />
           </div>
 
@@ -316,23 +331,33 @@ const Home = () => {
                     </div>
                   </div>
                   <div>
-                  <div style={styles.extraDetailsText}>
-                    <label style={styles.extraDetailsText}>
-                      Cabin  :  {"         " + fareDetail.cabin}
-                    </label>
+                    <div style={styles.extraDetailsText}>
+                      <label style={styles.extraDetailsText}>
+                        Cabin : {"         " + fareDetail.cabin}
+                      </label>
                     </div>
                     <div style={styles.extraDetailsBags}>
                       {fareDetail.includedCheckedBags && (
                         <label style={styles.extraDetailsText}>
-                          Checked Bags : {fareDetail.includedCheckedBags.weight ? fareDetail.includedCheckedBags.weight : "0"}{" "}
-                          {fareDetail.includedCheckedBags.weightUnit ? fareDetail.includedCheckedBags.weightUnit : "KG"}
+                          Checked Bags :{" "}
+                          {fareDetail.includedCheckedBags.weight
+                            ? fareDetail.includedCheckedBags.weight
+                            : "0"}{" "}
+                          {fareDetail.includedCheckedBags.weightUnit
+                            ? fareDetail.includedCheckedBags.weightUnit
+                            : "KG"}
                         </label>
                       )}
-                      
+
                       {fareDetail.includedCabinBags && (
                         <label style={styles.extraDetailsText}>
-                          Cabin Bags : {fareDetail.includedCabinBags.weight ? fareDetail.includedCabinBags.weight : "0"}{" "}  
-                          {fareDetail.includedCabinBags.weightUnit ? fareDetail.includedCabinBags.weightUnit : "KG"} 
+                          Cabin Bags :{" "}
+                          {fareDetail.includedCabinBags.weight
+                            ? fareDetail.includedCabinBags.weight
+                            : "0"}{" "}
+                          {fareDetail.includedCabinBags.weightUnit
+                            ? fareDetail.includedCabinBags.weightUnit
+                            : "KG"}
                         </label>
                       )}
                     </div>
@@ -352,7 +377,9 @@ const Home = () => {
                             }}
                           >
                             {fareDetail.amenities.map((item, i) => (
-                              <li key={i} style={{ marginBottom: "5px" }}>{item.description}</li>
+                              <li key={i} style={{ marginBottom: "5px" }}>
+                                {item.description}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -371,15 +398,72 @@ const Home = () => {
             <p style={styles.infoText}>No flights added yet.</p>
           ) : (
             <ul style={styles.itineraryList}>
-              {itinerary.map((flight, i) => {
+              {itinerary.map((flight, index) => {
                 const segments = flight.itineraries[0].segments;
+                const offer = flight.itineraries[0];
+                const dep = segments[0].departure;
+                const arr = segments[segments.length - 1].arrival;
+                const duration = offer.duration.replace("PT", "").toLowerCase();
+                const stops = segments.length - 1;
+                const stopCity =
+                  stops > 0 ? segments[0].arrival.iataCode : "Non-stop";
+
+                const traveler = flight.travelerPricings[0];
+
                 return (
-                  <li key={i} style={styles.card}>
-                    ✈️ {segments[0].departure.iataCode} →{" "}
-                    {segments[segments.length - 1].arrival.iataCode}
-                    <br />
-                    💰 ${flight.price.total}
-                  </li>
+                  <div
+                    key={index}
+                    style={{ ...styles.flightCardModern, position: "relative" }}
+                  >
+                    <button
+                      onClick={() => handleRemoveFromTrip(index)}
+                      style={{
+                        position: "absolute",
+                        top: "2px",
+                        right: "0px",
+                        background: "white",
+                        border: "none",
+                        fontSize: "20px",
+                        color: "#d0006f",
+                        cursor: "pointer",
+                      }}
+                      title="Remove from itinerary"
+                    >
+                      ×
+                    </button>
+                    <div style={styles.flightDetails}>
+                      <div style={styles.timeSection}>
+                        <div style={styles.timeText}>
+                          {dep.at.slice(11, 16)}
+                        </div>
+                        <div style={styles.codeText}>{dep.iataCode}</div>
+                      </div>
+
+                      <div style={styles.pathSection}>
+                        <div style={styles.durationText}>{duration}</div>
+                        <div style={styles.flightPath}>
+                          <div style={styles.arrow}>✈︎</div>
+                          <div style={styles.line}></div>
+                          <div style={styles.dot}></div>
+                        </div>
+                        <div style={styles.stopText}>
+                          {stops > 0 ? `${stops} stop` : "Non-stop"}{" "}
+                          {stops > 0 && <span>{stopCity}</span>}
+                        </div>
+                      </div>
+
+                      <div style={styles.timeSection}>
+                        <div style={styles.timeText}>
+                          {arr.at.slice(11, 16)}
+                        </div>
+                        <div style={styles.codeText}>{arr.iataCode}</div>
+                      </div>
+                    </div>
+
+                    <div style={styles.priceSection}>
+                      <div style={styles.priceText}>${flight.price.total}</div>
+                    </div>
+                  </div>
                 );
               })}
             </ul>
@@ -392,6 +476,7 @@ const Home = () => {
           <div></div>
         </div>
       </div>
+      <Footer/>
     </div>
   );
 };
@@ -399,7 +484,7 @@ const Home = () => {
 const styles = {
   wrapper: {
     display: "flex",
-    height: "93vh",
+    height: "89vh",
     width: "100%",
     padding: "1.5rem",
     gap: "1.5rem",
@@ -439,7 +524,7 @@ const styles = {
     fontWeight: "600",
   },
 
-  input: {
+  input :{
     padding: "8px 10px",
     fontSize: "14px",
     borderRadius: "6px",
@@ -451,42 +536,32 @@ const styles = {
     transition: "border-color 0.2s ease",
   },
 
-  inputFocus: {
+  inputFocus :{
     borderColor: "#d0006f",
   },
 
   swapButton: {
     fontSize: "22px",
     cursor: "pointer",
-    padding: "6px 12px",
+    padding: "6px 70px",
     userSelect: "none",
     color: "#d0006f",
     alignSelf: "center",
     borderRadius: "8px",
     border: "1.5px solid transparent",
-    transition: "background-color 0.5s ease",
-  },
-
-  swapButtonHover: {
-    backgroundColor: "rgba(208, 0, 111, 0.1)",
-    borderColor: "#d0006f",
   },
 
   button: {
     marginTop: "1rem",
-    padding: "0.85rem",
+    padding: "0.8rem",
     backgroundColor: "#d0006f",
     color: "#fff",
     border: "none",
     borderRadius: "8px",
     fontWeight: "700",
-    fontSize: "15px",
+    fontSize: "13px",
     cursor: "pointer",
     transition: "background-color 0.3s ease",
-  },
-
-  buttonHover: {
-    backgroundColor: "#b6005a",
   },
 
   middle: {
@@ -666,34 +741,10 @@ const styles = {
     fontWeight: "600",
     border: "none",
     borderRadius: "10px",
-    fontSize: "14px",
+    fontSize: "13px",
     cursor: "pointer",
   },
-  popup: {
-    position: "fixed",
-    top: "25%",
-    left: "25%",
-    width: "40%",
-    height: "60%",
-    backgroundColor: "#fff",
-    borderRadius: "12px",
-    boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
-    zIndex: 2,
-    padding: "2rem",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-    justifyContent: "space-between",
-  },
-  overlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    backgroundColor: "rgba(0,0,0,0.4)",
-    zIndex: 2,
-  },
+
   savedMessage: {
     position: "fixed",
     bottom: "2rem",
@@ -709,58 +760,16 @@ const styles = {
     boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
     animation: "fadein 0.5s ease",
   },
+
   deleteImageButton: {
     backgroundColor: "#999",
     color: "#fff",
-    padding: "0.4rem 0.75rem",
+    padding: "0.4rem 0.8rem",
     border: "none",
     borderRadius: "6px",
     fontSize: "13px",
     cursor: "pointer",
     fontWeight: "600",
-  },
-  popupOverlay: {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: "100vw",
-    height: "100vh",
-    backgroundColor: "rgba(0,0,0,0.5)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 2,
-  },
-  popupBox: {
-    backgroundColor: "#fff",
-    padding: "2rem",
-    borderRadius: "12px",
-    width: "50%",
-    height: "50%",
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-    justifyContent: "center",
-    alignItems: "center",
-    boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
-  },
-  input: {
-    padding: "0.75rem",
-    fontSize: "14px",
-    border: "1px solid #ccc",
-    borderRadius: "6px",
-    width: "80%",
-  },
-  button: {
-    marginTop: "1rem",
-    padding: "0.85rem",
-    backgroundColor: "#d0006f",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    fontWeight: "700",
-    fontSize: "15px",
-    cursor: "pointer",
   },
 };
 
@@ -775,11 +784,11 @@ const popupStyles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 999,
+    zIndex: 2,
   },
   popup: {
-    width: "50%",
-    height: "50%",
+    width: "35%",
+    height: "53%",
     backgroundColor: "#fff",
     padding: "2rem",
     borderRadius: "10px",
@@ -792,7 +801,7 @@ const popupStyles = {
   },
   title: {
     fontSize: "20px",
-    fontWeight: "700",
+    fontWeight: "600",
   },
   input: {
     padding: "10px",
@@ -807,134 +816,19 @@ const popupStyles = {
     alignItems: "center",
   },
   imagePreview: {
-    height: "80px",
+    height: "100px",
     borderRadius: "8px",
     boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
   },
   deleteBtn: {
-    backgroundColor: "#ccc",
+    backgroundColor: "#d0006f",
+    color: "#fff",
     border: "none",
     padding: "6px 12px",
     borderRadius: "6px",
     cursor: "pointer",
   },
-  saveBtn: {
-    padding: "0.85rem",
-    backgroundColor: "#d0006f",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    fontWeight: "700",
-    fontSize: "15px",
-    cursor: "pointer",
-  },
-
-  middle: {
-    flex: "2",
-    backgroundColor: "rgba(255, 255, 255, 0.85)",
-    padding: "1.5rem",
-    borderRadius: "10px",
-    overflowY: "auto",
-    fontSize: "14px",
-  },
-  panelHeading: {
-    marginBottom: "1rem",
-    fontWeight: "700",
-    fontSize: "18px",
-    color: "#333",
-  },
-  infoText: {
-    fontStyle: "italic",
-    color: "#666",
-  },
-  flightCardModern: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1rem",
-    backgroundColor: "#fff",
-    borderRadius: "16px",
-    padding: "1rem 1.5rem",
-    marginBottom: "1.5rem",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
-    fontSize: "14px",
-  },
-  flightDetails: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "2rem",
-  },
-  timeSection: {
-    textAlign: "center",
-    minWidth: "60px",
-  },
-  timeText: {
-    fontSize: "16px",
-    fontWeight: "700",
-    color: "#333",
-  },
-  codeText: {
-    color: "#666",
-    marginTop: "4px",
-    fontSize: "13px",
-  },
-  pathSection: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    minWidth: "100px",
-  },
-  durationText: {
-    fontSize: "12px",
-    marginBottom: "4px",
-    color: "#333",
-  },
-  flightPath: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  },
-  dot: {
-    width: "8px",
-    height: "8px",
-    borderRadius: "50%",
-    backgroundColor: "#d0006f",
-  },
-  line: {
-    width: "40px",
-    height: "2px",
-    backgroundColor: "#999",
-  },
-  arrow: {
-    fontSize: "25px",
-  },
-  stopText: {
-    fontSize: "12px",
-    marginTop: "4px",
-    color: "#d0006f",
-    fontWeight: "600",
-  },
-  priceSection: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  priceText: {
-    fontSize: "18px",
-    fontWeight: "700",
-    color: "#000",
-  },
-  selectButton: {
-    marginTop: "4px",
-    padding: "8px 16px",
-    backgroundColor: "#d0006f",
-    color: "#fff",
-    fontWeight: "600",
-    border: "none",
-    borderRadius: "10px",
-    fontSize: "14px",
-    cursor: "pointer",
-  },
+ 
 };
 
 export default Home;

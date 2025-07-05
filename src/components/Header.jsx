@@ -56,14 +56,13 @@ const styles = {
   navItem: {
     cursor: "pointer",
     fontWeight: "400",
-    fontSize: "14px",
-    paddingBottom: "4px",
+    fontSize: "12px",
     borderBottom: "2px solid transparent",
   },
   authItem: {
     cursor: "pointer",
     fontWeight: "400",
-    fontSize: "14px",
+    fontSize: "12px",
   },
 };
 
