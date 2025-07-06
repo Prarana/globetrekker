@@ -1,21 +1,23 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../services/firebase";
+import { useTranslation } from "react-i18next";
 
 const Header = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
-  const handleNav = (path) => {
+  const onClickNavigate = (path) => {
     if (location.pathname !== path) {
       navigate(path);
     }
   };
 
-  const handleAuthClick = async () => {
+  const onClickSignout = async () => {
     if (user) {
       await signOut(auth);
     }
@@ -23,24 +25,24 @@ const Header = () => {
   };
 
   return (
-    <div style={styles.header}>
-      <div style={styles.navLeft}>
-        <div onClick={() => handleNav("/home")} style={styles.navItem}>
-          HOME
+    <div style={styles.sknFlxHeader}>
+      <div style={styles.sknFlxLeft}>
+        <div onClick={() => onClickNavigate("/home")} style={styles.sknTxtNavItem}>
+        {t("home")}
         </div>
-        <div onClick={() => handleNav("/trips")} style={styles.navItem}>
-          TRIPS
+        <div onClick={() => onClickNavigate("/trips")} style={styles.sknTxtNavItem}>
+        {t("trips")}
         </div>
       </div>
-      <div onClick={handleAuthClick} style={styles.authItem}>
-        {user ? "SIGN OUT" : "SIGN IN"}
+      <div onClick={onClickSignout} style={styles.sknSignout}>
+      {user ? t("signOut") : t("signIn")}
       </div>
     </div>
   );
 };
 
 const styles = {
-  header: {
+  sknFlxHeader: {
     backgroundColor: "#00008B",
     color: "#fff",
     display: "flex",
@@ -49,20 +51,20 @@ const styles = {
     padding: "1rem 2rem",
     fontFamily: "'Segoe UI', sans-serif",
   },
-  navLeft: {
+  sknFlxLeft: {
     display: "flex",
     gap: "3rem",
   },
-  navItem: {
+  sknTxtNavItem: {
     cursor: "pointer",
     fontWeight: "400",
-    fontSize: "12px",
+    fontSize: "13px",
     borderBottom: "2px solid transparent",
   },
-  authItem: {
+  sknSignout: {
     cursor: "pointer",
     fontWeight: "400",
-    fontSize: "12px",
+    fontSize: "13px",
   },
 };
 

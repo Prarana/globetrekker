@@ -2,14 +2,14 @@ import React from "react";
 
 const Loading = () => {
   return (
-    <div style={styles.overlay}>
+    <div style={styles.sknFlxOverlay}>
       <div style={styles.spinner}></div>
     </div>
   );
 };
 
 const styles = {
-  overlay: {
+  sknFlxOverlay: {
     position: "fixed",
     top: 0,
     left: 0,

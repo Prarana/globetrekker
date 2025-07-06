@@ -1,11 +1,13 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t } = useTranslation();
   return (
-    <div style={styles.footer}>
-      <p style={styles.text}>
-        Developed by K. Prarana. For further details, please contact @{" "}
-        <a href="mailto:kprarana@gmail.com" style={styles.link}>
+    <div style={styles.sknFlxFooter}>
+      <p style={styles.sknTxtFooter}>
+        {t("developedBy")}{" "}
+        <a href="mailto:kprarana@gmail.com" style={styles.sknLink}>
           kprarana@gmail.com
         </a>
       </p>
@@ -14,20 +16,20 @@ const Footer = () => {
 };
 
 const styles = {
-  footer: {
+  sknFlxFooter: {
     backgroundColor: "#00008B",
     color: "#fff",
     padding: "1rem 2rem",
     textAlign: "center",
     fontFamily: "'Segoe UI', sans-serif",
   },
-  text: {
+  sknTxtFooter: {
     margin: 0,
     fontSize: "13px",
     fontWeight: "400",
     fontStyle: "italic",
   },
-  link: {
+  sknLink: {
     color: "#fff",
     textDecoration: "underline",
   },

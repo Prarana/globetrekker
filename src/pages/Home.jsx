@@ -1,14 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { getAmadeusToken } from "../services/amadeus";
-import { signOut } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../services/firebase";
 import Header from "../components/Header";
 import Loading from "../components/Loading";
 import Footer from "../components/Footer";
+import { useTranslation } from "react-i18next";
 
 const Home = () => {
   const [from, setFrom] = useState("");
@@ -26,8 +25,8 @@ const Home = () => {
   const [showSavedMessage, setShowSavedMessage] = useState(false);
   const [coverImageBase64, setCoverImageBase64] = useState("");
   const [loadingFlights, setLoadingFlights] = useState(false);
-
-  const navigate = useNavigate();
+  const { i18n, t } = useTranslation();
+  const isRTL = i18n.language === "ar";
 
   const fetchFlightOffers = async () => {
     setLoading(true);
@@ -37,34 +36,34 @@ const Home = () => {
       const response = await axios.get(
         "https://test.api.amadeus.com/v2/shopping/flight-offers",
         {
-            params: {
-              originLocationCode: from.toUpperCase(),
-              destinationLocationCode: to.toUpperCase(),
-              departureDate: date,
-              adults: passengers,
-              nonStop: false,
-              max: 200,
-              currencyCode: "USD",
-              maxPrice: budget,
-            },
-        //   params: {
-        //     originLocationCode: "HYD",
-        //     destinationLocationCode: "AUH",
-        //     departureDate: "2025-07-11",
-        //     adults: "1",
-        //     nonStop: false,
-        //     max: 200,
-        //     currencyCode: "USD",
-        //     maxPrice: budget,
-        //   },
+          params: {
+            originLocationCode: from.toUpperCase(),
+            destinationLocationCode: to.toUpperCase(),
+            departureDate: date,
+            adults: passengers,
+            nonStop: false,
+            max: 200,
+            currencyCode: "USD",
+            maxPrice: budget,
+          },
+          //   params: {
+          //     originLocationCode: "HYD",
+          //     destinationLocationCode: "AUH",
+          //     departureDate: "2025-07-11",
+          //     adults: "1",
+          //     nonStop: false,
+          //     max: 200,
+          //     currencyCode: "USD",
+          //     maxPrice: budget,
+          //   },
           headers: { Authorization: `Bearer ${accessToken}` },
         }
       );
       setResults(response.data.data);
     } catch (err) {
-      console.error("Error fetching flights:", err);
+      console.error("@@@@Error:", err);
       setError(
-        "Could not fetch flight offers. Please check the airport codes and try again."
+        "Could not carry out your instructions. Please try again later."
       );
     } finally {
       setLoading(false);
@@ -80,37 +79,37 @@ const Home = () => {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const onClickSearchFlights = async (e) => {
     e.preventDefault();
-    // if (!from || !to || !date) {
-    //   setError("All fields are required.");
-    //   return;
-    // }
+    if (!from || !to || !date) {
+      setError("All fields are mandatory.");
+      return;
+    }
     try {
       setLoadingFlights(true);
       await fetchFlightOffers();
     } catch (error) {
-      console.error("Flight search error", error);
+      console.error("@@@@@error", error);
     } finally {
       setLoadingFlights(false);
     }
   };
 
-  const handleAddToTrip = (flight) => {
+  const onClickSelectTrip = (flight) => {
     setItinerary((prev) => [...prev, flight]);
   };
 
-  const handleSaveItinerary = () => {
-    if (!user) {
-      alert("No user is logged in. Please log in to save itinerary.");
-      return;
-    }
+  const onClickSveItinerary = () => {
+    // if (!user) {
+    //   alert("No user logged in. Please log in to save itinerary.");
+    //   return;
+    // }
     if (!itinerary.length) return;
 
     setShowPopup(true);
   };
 
-  const finalizeSaveTrip = async () => {
+  const onClickSveItineraryPopup = async () => {
     try {
       const docRef = await addDoc(collection(db, "itineraries"), {
         uid: user.uid,
@@ -125,33 +124,32 @@ const Home = () => {
       setCoverImageBase64("");
       setItinerary([]);
 
-      alert("Trip details saved. Please check trip details from My Trips.");
+      alert(t("Tripdetailssaved"));
     } catch (error) {
       alert("Failed to save trip.");
-      console.error("Save error:", error);
+      console.error("@@@@error:", error);
     }
   };
-  const handleRemoveFromTrip = (indexToRemove) => {
+  const onClickDeleteTrip = (indexToRemove) => {
     setItinerary((prev) => prev.filter((_, index) => index !== indexToRemove));
   };
-  
 
   return (
     <div>
       {loadingFlights && <Loading />}
       <Header />
-      <div style={styles.wrapper}>
+      <div style={styles.sknFlxMain}>
         {showPopup && (
-          <div style={popupStyles.overlay}>
-            <div style={popupStyles.popup}>
-              <h2 style={popupStyles.title}>Enter trip details</h2>
+          <div style={popupStyles.sknCverlay}>
+            <div style={popupStyles.sknPopup}>
+              <h2 style={popupStyles.sknPopupTitle}>{t("Entertripdetails")}</h2>
 
               <input
                 type="text"
-                placeholder="Enter trip name"
+                placeholder={t("EnterTripName")}
                 value={tripName}
                 onChange={(e) => setTripName(e.target.value)}
-                style={popupStyles.input}
+                style={popupStyles.sknPopupInput}
               />
 
               <input
@@ -167,50 +165,47 @@ const Home = () => {
               />
 
               {coverImageBase64 && (
-                <div style={popupStyles.imagePreviewBox}>
+                <div style={popupStyles.sknPopupImagePreviewMain}>
                   <img
                     src={coverImageBase64}
                     alt="Preview"
-                    style={popupStyles.imagePreview}
+                    style={popupStyles.sknPopupImagePreview}
                   />
                   <button
                     onClick={() => setCoverImageBase64("")}
-                    style={popupStyles.deleteBtn}
+                    style={styles.sknBtnSelect}
                   >
-                    Remove Image
+                    {t("removeImage")}
                   </button>
                 </div>
               )}
 
-              <button onClick={finalizeSaveTrip} style={styles.button}>
-                Save
+              <button onClick={onClickSveItineraryPopup} style={styles.sknBtn}>
+                {t("save")}
               </button>
             </div>
           </div>
         )}
         {showSavedMessage && (
-          <div style={styles.savedMessage}>
-            Trip details saved. Please check trip details from My Trips.
-          </div>
+          <div style={styles.sknSavedMessage}>{t("Tripdetailssaved")}</div>
         )}
-        {/* Search Panel */}
-        <form onSubmit={handleSubmit} style={styles.searchBox}>
-          {/* Origin & Destination */}
-          <div style={styles.sectionBox}>
+
+        <form onSubmit={onClickSearchFlights} style={styles.sknsearchBox}>
+          <div style={styles.sknFlxSection}>
             <div>
-              <label style={styles.label}>ORIGIN</label>
+              <label style={styles.label}>{t("Origin")}</label>
               <input
                 type="text"
                 value={from}
                 onChange={(e) => setFrom(e.target.value.toUpperCase())}
-                placeholder="From"
+                placeholder={t("From")}
                 style={styles.input}
                 maxLength={3}
               />
             </div>
 
             <div
-              style={styles.swapButton}
+              style={styles.sknswapBtn}
               onClick={() => {
                 const temp = from;
                 setFrom(to);
@@ -221,21 +216,20 @@ const Home = () => {
             </div>
 
             <div>
-              <label style={styles.label}>DESTINATION</label>
+              <label style={styles.label}>{t("Destination")}</label>
               <input
                 type="text"
                 value={to}
                 onChange={(e) => setTo(e.target.value.toUpperCase())}
-                placeholder="To"
+                placeholder={t("To")}
                 style={styles.input}
                 maxLength={3}
               />
             </div>
           </div>
 
-          {/* Departure Date */}
-          <div style={styles.sectionBox}>
-            <label style={styles.label}>DEPARTURE</label>
+          <div style={styles.sknFlxSection}>
+            <label style={styles.label}>{t("Departure")}</label>
             <input
               type="date"
               min={new Date().toISOString().split("T")[0]}
@@ -245,9 +239,8 @@ const Home = () => {
             />
           </div>
 
-          {/* Passengers */}
-          <div style={styles.sectionBox}>
-            <label style={styles.label}>PASSENGERS</label>
+          <div style={styles.sknFlxSection}>
+            <label style={styles.label}>{t("Passengers")}</label>
             <input
               type="number"
               value={passengers}
@@ -255,117 +248,165 @@ const Home = () => {
                 setPassengers(Math.max(1, parseInt(e.target.value || 1)))
               }
               min={1}
-              style={styles.input} 
+              style={styles.input}
             />
           </div>
 
-          {/* Search Button */}
-          <button type="submit" style={styles.button}>
-            SEARCH
+          <button type="submit" style={styles.sknBtn}>
+            {t("Search")}
           </button>
 
-          {error && <p style={styles.error}>{error}</p>}
+          {error && <p style={styles.sknErrorRed}>{error}</p>}
         </form>
 
-        {/* Results Panel */}
-        <div style={styles.middle}>
-          <h1 style={styles.panelHeading}>Flights</h1>
-          {loading ? (
-            <p style={styles.infoText}>Loading flights...</p>
-          ) : results.length === 0 ? (
-            <p style={styles.infoText}>No flight results.</p>
+        {/* Flights */}
+        <div style={styles.sknFLxMainMiddle}>
+          <h1 style={styles.sknPanelHeading}>{t("Flights")}</h1>
+          {results.length === 0 ? (
+            <p style={styles.sknInfoText}>{t("Noflightfound")}</p>
           ) : (
             results.map((flight, index) => {
-              const offer = flight.itineraries[0];
-              const segments = offer.segments;
+              const trip = flight.itineraries[0];
+              const segments = trip.segments;
               const dep = segments[0].departure;
               const arr = segments[segments.length - 1].arrival;
-              const duration = offer.duration.replace("PT", "").toLowerCase();
+              const duration = trip.duration.replace("PT", "").toLowerCase();
               const stops = segments.length - 1;
-              const stopCity =
-                stops > 0 ? segments[0].arrival.iataCode : "Non-stop";
+              const stop =
+                stops > 0 ? segments[0].arrival.iataCode : t("nonstop");
 
               const traveler = flight.travelerPricings[0];
               const fareDetail = traveler.fareDetailsBySegment[0];
 
               return (
-                <div key={index} style={styles.flightCard}>
-                  <div style={styles.flightCardModern}>
-                    <div style={styles.flightDetails}>
-                      <div style={styles.timeSection}>
-                        <div style={styles.timeText}>
+                <div key={index} style={styles.sknFlightCardMain}>
+                  <div style={styles.sknFlightCard}>
+                    <div style={styles.sknFlxflightDetails}>
+                      <div style={styles.sknFlxTime}>
+                        <div style={styles.sknTxtTime}>
                           {dep.at.slice(11, 16)}
                         </div>
-                        <div style={styles.codeText}>{dep.iataCode}</div>
-                      </div>
-
-                      <div style={styles.pathSection}>
-                        <div style={styles.durationText}>{duration}</div>
-                        <div style={styles.flightPath}>
-                          <div style={styles.arrow}> ✈︎ </div>
-                          <div style={styles.line}></div>
-                          <div style={styles.dot}></div>
-                        </div>
-                        <div style={styles.stopText}>
-                          {stops > 0 ? `${stops} stop` : "Non-stop"}{" "}
-                          {stops > 0 && <span>{stopCity}</span>}
+                        <div style={styles.sknTxtCode}>{dep.iataCode}</div>
+                        <div style={styles.sknTxtCode}>
+                          {dep.at.slice(8, 10) +
+                            "-" +
+                            dep.at.slice(5, 7) +
+                            "-" +
+                            dep.at.slice(0, 4)}
                         </div>
                       </div>
 
-                      <div style={styles.timeSection}>
-                        <div style={styles.timeText}>
+                      <div style={styles.sknFlxPath}>
+                        <div style={styles.sknTxtDuration}>{duration}</div>
+                        <div
+                          style={{
+                            ...styles.sknFlxflightPath,
+                            flexDirection: isRTL ? "row-reverse" : "row",
+                          }}
+                        >
+                          {isRTL ? (
+                            <>
+                              <div style={styles.sknDot}></div>
+                              <div style={styles.sknFlxLine}></div>
+                              <div
+                                style={{
+                                  ...styles.sknFLightEmoji,
+                                  transform: "scaleX(-1)",
+                                }}
+                              >
+                                ✈︎
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={styles.sknFLightEmoji}>✈︎</div>
+                              <div style={styles.sknFlxLine}></div>
+                              <div style={styles.sknDot}></div>
+                            </>
+                          )}
+                        </div>
+                        <div style={styles.skntxtStop}>
+                          {stops > 0 ? `${stops} ${t("stop")}` : t("nonstop")}
+                          {stops > 0 && <span>{stop}</span>}
+                        </div>
+                      </div>
+
+                      <div style={styles.sknFlxTime}>
+                        <div style={styles.sknTxtTime}>
                           {arr.at.slice(11, 16)}
                         </div>
-                        <div style={styles.codeText}>{arr.iataCode}</div>
+                        <div style={styles.sknTxtCode}>{arr.iataCode}</div>
+                        <div style={styles.sknTxtCode}>
+                          {arr.at.slice(8, 10) +
+                            "-" +
+                            arr.at.slice(5, 7) +
+                            "-" +
+                            arr.at.slice(0, 4)}
+                        </div>
                       </div>
                     </div>
 
-                    <div style={styles.priceSection}>
-                      <div style={styles.priceText}>${flight.price.total}</div>
+                    <div style={styles.sknFlxPrice}>
+                      <div style={styles.sknTxtPrice}>
+                        ${flight.price.total}
+                      </div>
                       <button
-                        onClick={() => handleAddToTrip(flight)}
-                        style={styles.selectButton}
+                        onClick={() => onClickSelectTrip(flight)}
+                        style={styles.sknBtnSelect}
                       >
-                        Select
+                        {t("select")}
                       </button>
                     </div>
                   </div>
                   <div>
-                    <div style={styles.extraDetailsText}>
-                      <label style={styles.extraDetailsText}>
-                        Cabin : {"         " + fareDetail.cabin}
+                    <div style={styles.sknTxtDextraDetails}>
+                      <label
+                        style={{
+                          ...styles.sknTxtDextraDetails,
+                          display: "block",
+                          textAlign: isRTL ? "right" : "left",
+                        }}
+                      >
+                        {t("Cabin")} :{" "}
+                        {"         " + fareDetail.cabin.toLowerCase()}
                       </label>
                     </div>
-                    <div style={styles.extraDetailsBags}>
+                    <div style={styles.sknTxtextraDetailsBags}>
                       {fareDetail.includedCheckedBags && (
-                        <label style={styles.extraDetailsText}>
-                          Checked Bags :{" "}
+                        <label style={styles.sknTxtDextraDetails}>
+                          {t("checkinBags")} :{" "}
                           {fareDetail.includedCheckedBags.weight
                             ? fareDetail.includedCheckedBags.weight
                             : "0"}{" "}
                           {fareDetail.includedCheckedBags.weightUnit
-                            ? fareDetail.includedCheckedBags.weightUnit
-                            : "KG"}
+                            ? fareDetail.includedCheckedBags.weightUnit.toLowerCase()
+                            : "kg"}
                         </label>
                       )}
 
                       {fareDetail.includedCabinBags && (
-                        <label style={styles.extraDetailsText}>
-                          Cabin Bags :{" "}
+                        <label style={styles.sknTxtDextraDetails}>
+                          {t("cabinBags")} :{" "}
                           {fareDetail.includedCabinBags.weight
                             ? fareDetail.includedCabinBags.weight
                             : "0"}{" "}
                           {fareDetail.includedCabinBags.weightUnit
-                            ? fareDetail.includedCabinBags.weightUnit
-                            : "KG"}
+                            ? fareDetail.includedCabinBags.weightUnit.toLowerCase()
+                            : "kg"}
                         </label>
                       )}
                     </div>
                     {fareDetail.amenities &&
                       fareDetail.amenities.length > 0 && (
-                        <div>
-                          <label style={styles.extraDetailsText}>
-                            Amenities :{" "}
+                        <div style={{ direction: isRTL ? "rtl" : "ltr" }}>
+                          <label
+                            style={{
+                              ...styles.sknTxtDextraDetails,
+                              display: "block",
+                              textAlign: isRTL ? "right" : "left",
+                            }}
+                          >
+                            {t("Amenities")} :{" "}
                           </label>
                           <ul
                             style={{
@@ -374,11 +415,12 @@ const Home = () => {
                               fontSize: "12px",
                               marginBottom: "1px",
                               color: "#333",
+                              textAlign: isRTL ? "right" : "left",
                             }}
                           >
                             {fareDetail.amenities.map((item, i) => (
                               <li key={i} style={{ marginBottom: "5px" }}>
-                                {item.description}
+                                {item.description.toLowerCase()}
                               </li>
                             ))}
                           </ul>
@@ -391,32 +433,32 @@ const Home = () => {
           )}
         </div>
 
-        {/* Itinerary Panel */}
-        <div style={styles.right}>
-          <h1 style={styles.panelHeading}>Itinerary</h1>
+        {/* Itinerary */}
+        <div style={styles.sknFLxMainMiddle}>
+          <h1 style={styles.sknPanelHeading}>{t("Itinerary")}</h1>
           {itinerary.length === 0 ? (
-            <p style={styles.infoText}>No flights added yet.</p>
+            <p style={styles.sknInfoText}>{t("Noflightsaddedyet")}</p>
           ) : (
-            <ul style={styles.itineraryList}>
+            <ul style={styles.sknIitineraryList}>
               {itinerary.map((flight, index) => {
                 const segments = flight.itineraries[0].segments;
-                const offer = flight.itineraries[0];
+                const trip = flight.itineraries[0];
                 const dep = segments[0].departure;
                 const arr = segments[segments.length - 1].arrival;
-                const duration = offer.duration.replace("PT", "").toLowerCase();
+                const duration = trip.duration.replace("PT", "").toLowerCase();
                 const stops = segments.length - 1;
-                const stopCity =
-                  stops > 0 ? segments[0].arrival.iataCode : "Non-stop";
+                const stop =
+                  stops > 0 ? segments[0].arrival.iataCode : t("nonstop");
 
                 const traveler = flight.travelerPricings[0];
 
                 return (
                   <div
                     key={index}
-                    style={{ ...styles.flightCardModern, position: "relative" }}
+                    style={{ ...styles.sknFlightCard, position: "relative" }}
                   >
                     <button
-                      onClick={() => handleRemoveFromTrip(index)}
+                      onClick={() => onClickDeleteTrip(index)}
                       style={{
                         position: "absolute",
                         top: "2px",
@@ -427,41 +469,78 @@ const Home = () => {
                         color: "#d0006f",
                         cursor: "pointer",
                       }}
-                      title="Remove from itinerary"
                     >
                       ×
                     </button>
-                    <div style={styles.flightDetails}>
-                      <div style={styles.timeSection}>
-                        <div style={styles.timeText}>
+                    <div style={styles.sknFlxflightDetails}>
+                      <div style={styles.sknFlxTime}>
+                        <div style={styles.sknTxtTime}>
                           {dep.at.slice(11, 16)}
                         </div>
-                        <div style={styles.codeText}>{dep.iataCode}</div>
-                      </div>
-
-                      <div style={styles.pathSection}>
-                        <div style={styles.durationText}>{duration}</div>
-                        <div style={styles.flightPath}>
-                          <div style={styles.arrow}>✈︎</div>
-                          <div style={styles.line}></div>
-                          <div style={styles.dot}></div>
-                        </div>
-                        <div style={styles.stopText}>
-                          {stops > 0 ? `${stops} stop` : "Non-stop"}{" "}
-                          {stops > 0 && <span>{stopCity}</span>}
+                        <div style={styles.sknTxtCode}>{dep.iataCode}</div>
+                        <div style={styles.sknTxtCode}>
+                          {dep.at.slice(8, 10) +
+                            "-" +
+                            dep.at.slice(5, 7) +
+                            "-" +
+                            dep.at.slice(0, 4)}
                         </div>
                       </div>
 
-                      <div style={styles.timeSection}>
-                        <div style={styles.timeText}>
+                      <div style={styles.sknFlxPath}>
+                        <div style={styles.sknTxtDuration}>{duration}</div>
+                        <div
+                          style={{
+                            ...styles.sknFlxflightPath,
+                            flexDirection: isRTL ? "row-reverse" : "row",
+                          }}
+                        >
+                          {isRTL ? (
+                            <>
+                              <div style={styles.sknDot}></div>
+                              <div style={styles.sknFlxLine}></div>
+                              <div
+                                style={{
+                                  ...styles.sknFLightEmoji,
+                                  transform: "scaleX(-1)",
+                                }}
+                              >
+                                ✈︎
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={styles.sknFLightEmoji}>✈︎</div>
+                              <div style={styles.sknFlxLine}></div>
+                              <div style={styles.sknDot}></div>
+                            </>
+                          )}
+                        </div>
+                        <div style={styles.skntxtStop}>
+                          {stops > 0 ? `${stops} ${t("stop")}` : t("nonstop")}
+                          {stops > 0 && <span>{stop}</span>}
+                        </div>
+                      </div>
+
+                      <div style={styles.sknFlxTime}>
+                        <div style={styles.sknTxtTime}>
                           {arr.at.slice(11, 16)}
                         </div>
-                        <div style={styles.codeText}>{arr.iataCode}</div>
+                        <div style={styles.sknTxtCode}>{arr.iataCode}</div>
+                        <div style={styles.sknTxtCode}>
+                          {arr.at.slice(8, 10) +
+                            "-" +
+                            arr.at.slice(5, 7) +
+                            "-" +
+                            arr.at.slice(0, 4)}
+                        </div>
                       </div>
                     </div>
 
-                    <div style={styles.priceSection}>
-                      <div style={styles.priceText}>${flight.price.total}</div>
+                    <div style={styles.sknFlxPrice}>
+                      <div style={styles.sknTxtPrice}>
+                        ${flight.price.total}
+                      </div>
                     </div>
                   </div>
                 );
@@ -469,45 +548,45 @@ const Home = () => {
             </ul>
           )}
           {itinerary.length > 0 && (
-            <button onClick={handleSaveItinerary} style={styles.button}>
-              Save Itinerary
+            <button onClick={onClickSveItinerary} style={styles.sknBtn}>
+              {t("saveItinerary")}
             </button>
           )}
           <div></div>
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </div>
   );
 };
 
 const styles = {
-  wrapper: {
+  sknFlxMain: {
     display: "flex",
     height: "89vh",
     width: "100%",
     padding: "1.5rem",
     gap: "1.5rem",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontFamily: "'Segoe UI', sans-serif",
     backgroundColor: "rgba(255,255,255,0.05)",
     backdropFilter: "blur(5px)",
   },
 
-  searchBox: {
+  sknsearchBox: {
     flex: "1",
     display: "flex",
     flexDirection: "column",
     gap: "1.25rem",
     backgroundColor: "#fff",
     padding: "1.5rem",
-    borderRadius: "10px",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+    borderRadius: "6px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
     fontSize: "14px",
   },
 
-  sectionBox: {
+  sknFlxSection: {
     border: "1px solid #ccc",
-    borderRadius: "8px",
+    borderRadius: "6px",
     padding: "1rem",
     display: "flex",
     justifyContent: "space-between",
@@ -524,7 +603,7 @@ const styles = {
     fontWeight: "600",
   },
 
-  input :{
+  input: {
     padding: "8px 10px",
     fontSize: "14px",
     borderRadius: "6px",
@@ -536,35 +615,31 @@ const styles = {
     transition: "border-color 0.2s ease",
   },
 
-  inputFocus :{
-    borderColor: "#d0006f",
-  },
-
-  swapButton: {
+  sknswapBtn: {
     fontSize: "22px",
     cursor: "pointer",
     padding: "6px 70px",
     userSelect: "none",
     color: "#d0006f",
     alignSelf: "center",
-    borderRadius: "8px",
+    borderRadius: "6px",
     border: "1.5px solid transparent",
   },
 
-  button: {
+  sknBtn: {
     marginTop: "1rem",
     padding: "0.8rem",
     backgroundColor: "#d0006f",
     color: "#fff",
     border: "none",
-    borderRadius: "8px",
-    fontWeight: "700",
+    borderRadius: "6px",
+    fontWeight: "600",
     fontSize: "13px",
     cursor: "pointer",
     transition: "background-color 0.3s ease",
   },
 
-  middle: {
+  sknFLxMainMiddle: {
     flex: "2",
     backgroundColor: "rgba(255, 255, 255, 0.85)",
     padding: "1.5rem",
@@ -573,51 +648,31 @@ const styles = {
     fontSize: "14px",
   },
 
-  right: {
-    flex: "2",
-    backgroundColor: "rgba(255, 255, 255, 0.85)",
-    padding: "1.5rem",
-    borderRadius: "10px",
-    overflowY: "auto",
-    fontSize: "14px",
-  },
-
-  panelHeading: {
+  sknPanelHeading: {
     marginBottom: "1rem",
-    fontWeight: "700",
+    fontWeight: "600",
     fontSize: "18px",
     color: "#333",
   },
 
-  infoText: {
+  sknInfoText: {
     fontStyle: "italic",
     color: "#666",
   },
 
-  card: {
-    border: "1.5px solid #ccc",
-    padding: "1rem",
-    marginBottom: "1.25rem",
-    borderRadius: "10px",
-    backgroundColor: "#fff",
-    fontWeight: "500",
-    fontSize: "14px",
-    color: "#222",
-  },
-
-  itineraryList: {
+  sknIitineraryList: {
     listStyle: "none",
     padding: 0,
     margin: 0,
   },
 
-  error: {
+  sknErrorRed: {
     color: "red",
     fontSize: "13px",
     marginTop: "0.5rem",
     fontWeight: "600",
   },
-  flightCardModern: {
+  sknFlightCard: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
@@ -625,19 +680,20 @@ const styles = {
     padding: "1rem 1rem",
     marginBottom: "1rem",
     fontSize: "14px",
+    borderRadius: "16px",
   },
 
-  flightCard: {
+  sknFlightCardMain: {
     backgroundColor: "#fff",
     borderRadius: "16px",
     padding: "1rem 1.5rem",
     marginBottom: "1rem",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
     fontSize: "14px",
     textAlign: "left",
   },
 
-  flightDetails: {
+  sknFlxflightDetails: {
     display: "flex",
     alignItems: "center",
     flex: 1,
@@ -645,43 +701,45 @@ const styles = {
     left: "-1%",
   },
 
-  timeSection: {
+  sknFlxTime: {
     textAlign: "center",
     minWidth: "60px",
   },
 
-  timeText: {
+  sknTxtTime: {
     fontSize: "16px",
-    fontWeight: "700",
+    fontWeight: "600",
     color: "#333",
   },
 
-  codeText: {
+  sknTxtCode: {
     color: "#666",
     marginTop: "4px",
     fontSize: "13px",
   },
 
-  pathSection: {
+  sknFlxPath: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     minWidth: "100px",
   },
 
-  durationText: {
+  sknTxtDuration: {
     fontSize: "12px",
     marginBottom: "4px",
     color: "#333",
   },
 
-  extraDetailsText: {
+  sknTxtDextraDetails: {
     fontSize: "13px",
     marginBottom: "8px",
     color: "#333",
+    textAlign: "inherit",
+    display: "block",
   },
 
-  extraDetailsBags: {
+  sknTxtextraDetailsBags: {
     fontSize: "13px",
     color: "#333",
     flexDirection: "row",
@@ -689,63 +747,63 @@ const styles = {
     display: "flex",
   },
 
-  flightPath: {
+  sknFlxflightPath: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
   },
 
-  dot: {
+  sknDot: {
     width: "8px",
     height: "8px",
     borderRadius: "50%",
     backgroundColor: "#d0006f",
   },
 
-  line: {
+  sknFlxLine: {
     width: "40px",
     height: "2px",
     backgroundColor: "#999",
   },
 
-  arrow: {
+  sknFLightEmoji: {
     fontSize: "25px",
   },
 
-  stopText: {
+  skntxtStop: {
     fontSize: "12px",
     marginTop: "4px",
     color: "#d0006f",
     fontWeight: "600",
   },
 
-  priceSection: {
+  sknFlxPrice: {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-end",
     gap: "10px",
   },
 
-  priceText: {
+  sknTxtPrice: {
     fontSize: "18px",
-    fontWeight: "700",
+    fontWeight: "600",
     color: "#000",
     gap: "10px",
   },
 
-  selectButton: {
+  sknBtnSelect: {
     marginTop: "4px",
-    padding: "8px 16px",
+    padding: "7px 15px",
     backgroundColor: "#d0006f",
     color: "#fff",
     fontWeight: "600",
     border: "none",
-    borderRadius: "10px",
+    borderRadius: "6px",
     fontSize: "13px",
     cursor: "pointer",
   },
 
-  savedMessage: {
+  sknSavedMessage: {
     position: "fixed",
     bottom: "2rem",
     left: "50%",
@@ -753,28 +811,17 @@ const styles = {
     backgroundColor: "#d0006f",
     color: "#fff",
     padding: "1rem 2rem",
-    borderRadius: "10px",
+    borderRadius: "6px",
     fontWeight: "600",
     fontSize: "15px",
     zIndex: 2,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
     animation: "fadein 0.5s ease",
-  },
-
-  deleteImageButton: {
-    backgroundColor: "#999",
-    color: "#fff",
-    padding: "0.4rem 0.8rem",
-    border: "none",
-    borderRadius: "6px",
-    fontSize: "13px",
-    cursor: "pointer",
-    fontWeight: "600",
   },
 };
 
 const popupStyles = {
-  overlay: {
+  sknCverlay: {
     position: "fixed",
     top: 0,
     left: 0,
@@ -786,49 +833,40 @@ const popupStyles = {
     justifyContent: "center",
     zIndex: 2,
   },
-  popup: {
+  sknPopup: {
     width: "35%",
-    height: "53%",
+    height: "60%",
     backgroundColor: "#fff",
     padding: "2rem",
-    borderRadius: "10px",
-    boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+    borderRadius: "6px",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
     display: "flex",
     flexDirection: "column",
     gap: "1rem",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    fontFamily: "'Segoe UI', sans-serif",
     color: "#333",
   },
-  title: {
+  sknPopupTitle: {
     fontSize: "20px",
     fontWeight: "600",
   },
-  input: {
+  sknPopupInput: {
     padding: "10px",
     fontSize: "14px",
     border: "1.5px solid #ccc",
     borderRadius: "6px",
     outline: "none",
   },
-  imagePreviewBox: {
+  sknPopupImagePreviewMain: {
     display: "flex",
     gap: "1rem",
     alignItems: "center",
   },
-  imagePreview: {
+  sknPopupImagePreview: {
     height: "100px",
-    borderRadius: "8px",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-  },
-  deleteBtn: {
-    backgroundColor: "#d0006f",
-    color: "#fff",
-    border: "none",
-    padding: "6px 12px",
     borderRadius: "6px",
-    cursor: "pointer",
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
   },
- 
 };
 
 export default Home;
