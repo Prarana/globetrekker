@@ -249,7 +249,7 @@ const Home = () => {
               type="number"
               value={passengers}
               onChange={(e) =>
-                setPassengers(Math.max(1, parseInt(e.target.value || 1)))
+                setPassengers(e.target.value)
               }
               min={1}
               style={styles.input}

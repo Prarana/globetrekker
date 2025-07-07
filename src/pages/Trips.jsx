@@ -101,7 +101,7 @@ const Trips = () => {
               style={{
                 ...styles.sknFlxTripItem,
                 backgroundColor:
-                  selectedTrip?.id === trip.id ? "#ffeaf4" : "#fff",
+                  selectedTrip.id === trip.id ? "#ffeaf4" : "#fff",
                 display: "flex",
                 flexDirection: "column",
               }}
@@ -109,7 +109,6 @@ const Trips = () => {
               {trip.coverImage && trip.coverImage.startsWith("data:image") ? (
                 <img
                   src={trip.coverImage}
-                  alt={`${trip.tripName || `Trip : ${index + 1}`} cover`}
                   style={styles.sknFlxCoverImage}
                 />
               ) : (
@@ -117,7 +116,7 @@ const Trips = () => {
               )}
 
               <div style={styles.sknTxtTripName}>
-                {trip.name || trip.tripName || `Trip : ${index + 1}`}
+                {trip.name || `Trip : ${index + 1}`}
               </div>
 
               <div style={styles.sknTxtDate}>
@@ -223,11 +222,12 @@ const Trips = () => {
               <p style={styles.sknTxtInfo}>Select a trip to see details.</p>
             )}
           </div>
-          <div style={styles.sknFlxExport}>
+          { selectedTrip && (<div style={styles.sknFlxExport}>
             <button onClick={onClickExportPDF} style={styles.sknButton}>
               {t("ExportPDF")}
             </button>
           </div>
+          )}
         </div>
       </div>
 
