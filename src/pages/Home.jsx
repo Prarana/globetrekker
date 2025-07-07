@@ -157,6 +157,10 @@ const Home = () => {
                 accept="image/*"
                 onChange={async (e) => {
                   const file = e.target.files[0];
+                  if (file.size >= 1024 * 1024) {
+                    alert("Please upload an image below 1MB.");
+                    return;
+                  }
                   if (file) {
                     const base64 = await fileToBase64(file);
                     setCoverImageBase64(base64);

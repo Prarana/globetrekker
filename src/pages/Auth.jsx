@@ -1,8 +1,5 @@
 import React, { useState } from "react";
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-} from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../services/firebase";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -12,7 +9,6 @@ function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
   const { i18n, t } = useTranslation();
 
@@ -24,20 +20,15 @@ function Auth() {
   const onClickSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
     try {
-      if (isLogin) {
+      if (isLogin) 
         await signInWithEmailAndPassword(auth, email, password);
-        setSuccess("Welcome back!");
-      } else {
+      else 
         await createUserWithEmailAndPassword(auth, email, password);
-        setSuccess("Account created successfully!");
-      }
 
-      setTimeout(() => {
-        navigate("/home");
-      }, 1500);
-    } catch (err) {
+      setTimeout(() => { navigate("/home");}, 1500);
+    } 
+    catch (err) {
       setError(err.message);
     }
   };

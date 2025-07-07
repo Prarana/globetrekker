@@ -13,7 +13,7 @@ export async function getAmadeusToken() {
   
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.error_description || "Failed to get token");
+      throw new Error(data.error_description);
     }
   
     return data.access_token;
